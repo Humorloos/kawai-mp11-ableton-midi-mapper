@@ -1,7 +1,9 @@
 import dataclasses as dc
 
+from Tone import Tone
+
 
 @dc.dataclass
 class Section:
     name: str = ''
-    active_tone: int = 0
+    active_tone: Tone = None

@@ -5,6 +5,7 @@ import win32com.client as win32
 from CcReference import CcReference
 from Section import Section
 from SysExInfo import SysExInfo
+from Tone import Tone
 from cachedproperty import cached_property
 from consts import KAWAI_SECTION_NAMES
 
@@ -33,7 +34,8 @@ def int_to_hex(value):
 class EventHandler:
 
     def __init__(self):
-        self.sections = [Section(name=name, active_tone=0) for name in KAWAI_SECTION_NAMES]
+        self.tones = [Tone(id=i) for i in range(16)]
+        self.sections = [Section(name=name, active_tone=self.tones[0]) for name in KAWAI_SECTION_NAMES]
         self.active_section = self.sections[1]
         self.out_port_names = {'kawai': '2- KAWAI USB MIDI', 'loopMIDI': 'loopMIDI Port'}
         self.in_port_names = {'kawai': '2- KAWAI USB MIDI', 'loopMIDI': 'loopMIDI Port 1'}
@@ -60,28 +62,33 @@ class EventHandler:
             if sys_ex_prefix in PREFIX_SYS_EX_MAP.keys():
                 sys_ex_info = PREFIX_SYS_EX_MAP[sys_ex_prefix]
                 section_index = sys_ex_info.map[sys_ex_prefix]
+                section = self.sections[section_index]
                 data_size = int(bStrSysEx[27:29], 16)
                 data = int(bStrSysEx[27 + 3 * data_size:29 + 3 * data_size], 16)
                 if sys_ex_info.name == 'tone':
                     # activate section
-                    self.active_section = self.sections[section_index]
+                    self.active_section = section
                     # activate tone in section
                     if section_index in range(2):
-                        self.active_section.active_tone = int(bStrSysEx[30:32] + bStrSysEx[33:35], 16) - (
-                                section_index * 12)
+                        tone_id = int(bStrSysEx[30:32] + bStrSysEx[33:35], 16) - (section_index * 12)
                     else:
                         raw_channel = int(bStrSysEx[30:32] + bStrSysEx[33:35], 16) - 24
                         # reserve each 4th tone in sub for return tracks (3, 7, 11, 15 are 12, 13, 14, 15 instead)
-                        self.active_section.active_tone = int(raw_channel - raw_channel // 4 + int(
-                            not bool((raw_channel + 1) % 4)) * (11 - (2 * ((raw_channel + 1) / 4))))
+                        tone_id = int(raw_channel - raw_channel // 4 + int(not bool((raw_channel + 1) % 4)) * (
+                                11 - (2 * ((raw_channel + 1) / 4))))
+                    self.active_section.active_tone = self.tones[tone_id]
                     # instead of tone data, always output 127 on respective channel
                     data = 1
-                self.output_cc_2_track(track=self.sections[section_index],
+                    # load settings from respective tone to mp11
+                    for prefix, postfix in section.active_tone.map.items():
+                        # noinspection PyUnresolvedReferences
+                        mox.SendSysExString(prefix + postfix)
+                else:
+                    for sys_ex_string in sys_ex_info.sys_ex_strings:
+                        section.active_tone.map[sys_ex_string] = bStrSysEx[29:]
+                self.output_cc_2_track(track=section.active_tone.id,
                                        cc_code=sys_ex_info.control_number,
                                        value=data * sys_ex_info.scale)
-
-    def activate_active_track(self):
-        self.output_cc_signal_2_active_track(cc_code=CONTROL_NUMBER_DICT['tone'], value=127)
 
     # noinspection PyPep8Naming,PyMethodMayBeStatic
     def OnTerminateMidiInput(self):
@@ -92,35 +99,42 @@ class EventHandler:
         if port == self.in_ports['loopMIDI']:
             if data1 in REVERSE_CCS:
                 sys_ex_info = REVERSE_PREFIX_SYS_EX_MAP[data1]
-                hex_value = int_to_hex(data2 // sys_ex_info.scale)
+                sys_ex_postfix = f' {int_to_hex(data2 // sys_ex_info.scale)} F7'
                 some_section_was_updated = False
-                affected_tone = status - CC_STATUS_OFFSET
+                affected_tone_id = status - CC_STATUS_OFFSET
+
+                def update_mp11(sys_ex_prefix, sys_ex_postfix):
+                    # noinspection PyUnresolvedReferences
+                    mox.SendSysExString(sys_ex_prefix + sys_ex_postfix)
+                    for sys_ex_string in sys_ex_info.sys_ex_strings:
+                        section.active_tone.map[sys_ex_string] = sys_ex_postfix
+
                 for i, section in enumerate(self.sections):
-                    if section.active_tone == affected_tone:
-                        # noinspection PyUnresolvedReferences
-                        mox.SendSysExString(f'{sys_ex_info.sys_ex_strings[i]} {hex_value} F7')
+                    if section.active_tone.id == affected_tone_id:
+                        update_mp11(sys_ex_prefix=sys_ex_info.sys_ex_strings[i], sys_ex_postfix=sys_ex_postfix)
                         some_section_was_updated = True
                 if not some_section_was_updated:
-                    self.active_section.active_tone = affected_tone
+                    self.active_section.active_tone = self.tones[affected_tone_id]
                     section_id = REVERSE_SECTIONS_DICT[self.active_section.name]
                     if section_id in range(2):
-                        tone_id = affected_tone + section_id * 12
+                        tone_id = affected_tone_id + section_id * 12
                     else:
-                        tone_id = affected_tone + (affected_tone // 3) - (int(affected_tone > 11) * (4 + 3 * (
-                                15 - affected_tone)) + int(affected_tone == 15)) + 24
+                        tone_id = affected_tone_id + (affected_tone_id // 3) - (int(affected_tone_id > 11) * (4 + 3 * (
+                                15 - affected_tone_id)) + int(affected_tone_id == 15)) + 24
+                    # activate tone in correct section
                     # noinspection PyUnresolvedReferences
                     mox.SendSysExString(
                         f'{REVERSE_PREFIX_SYS_EX_MAP[CONTROL_NUMBER_DICT["tone"]].sys_ex_strings[section_id]}'
                         f' 00 {int_to_hex(tone_id)} F7')
                     # noinspection PyUnresolvedReferences
-                    mox.SendSysExString(f'{sys_ex_info.sys_ex_strings[section_id]} {hex_value} F7')
+                    update_mp11(sys_ex_prefix=sys_ex_info.sys_ex_strings[section_id], sys_ex_postfix=sys_ex_postfix)
 
     def output_cc_signal_2_active_track(self, cc_code, value):
-        self.output_cc_2_track(track=self.active_section, cc_code=cc_code, value=value)
+        self.output_cc_2_track(track=self.active_section.active_tone.id, cc_code=cc_code, value=value)
 
-    def output_cc_2_track(self, track: Section, cc_code, value):
+    def output_cc_2_track(self, track: int, cc_code, value):
         # noinspection PyUnresolvedReferences
-        mox.OutputMidiMsg(self.out_ports['loopMIDI'], CC_STATUS_OFFSET + track.active_tone, cc_code,
+        mox.OutputMidiMsg(self.out_ports['loopMIDI'], CC_STATUS_OFFSET + track, cc_code,
                           value)
 
 
@@ -133,7 +147,8 @@ class MidiOxProxy:
     
     GetAppVersion
     
-    Returns a string containing the version of MIDI-OX installed in the same directory as the COM interface object. No attachment is required to retrieve this value.
+    Returns a string containing the version of MIDI-OX installed in the same directory as the COM interface object.
+    No attachment is required to retrieve this value.
     
     Example:    
     MsgBox "MIDI-OX Version: " & mox.GetAppVersion
@@ -161,7 +176,8 @@ class MidiOxProxy:
     
     ShouldExitScript
     
-    This property is usually queried in a loop, and may be set by MIDI-OX to inform the script that the user has chosen the Exit WScript menu item.
+    This property is usually queried in a loop, and may be set by MIDI-OX to inform the script that the user has
+    chosen the Exit WScript menu item.
     
     Example:    
     Do While mox.ShouldExitScript = 0
@@ -172,7 +188,8 @@ class MidiOxProxy:
     
     ShutdownAtEnd
     
-    This property determines whether MIDI-OX should keep running after the end of the script. By default, the MIDI-OX instance is ended after the script ends. You can change that behavior by using this property.
+    This property determines whether MIDI-OX should keep running after the end of the script. By default, the MIDI-OX
+    instance is ended after the script ends. You can change that behavior by using this property.
     
     Example:    
     If vbYes = MsgBox( "Shutdown?", vbYesNo + vbQuestion, "Exit" ) Then
@@ -196,9 +213,11 @@ class MidiOxProxy:
     
     GetNextSysMidiInDev
     
-    Returns a VB string containing the name of the next MIDI input device defined to Windows. Returns a blank string ("") when there are no more devices.
+    Returns a VB string containing the name of the next MIDI input device defined to Windows. Returns a blank string
+    ("") when there are no more devices.
     
-    These methods can be used to return all the MIDI input devices installed. They do not require a MIDI-OX attachment (or even that MIDI-OX be running).
+    These methods can be used to return all the MIDI input devices installed. They do not require a MIDI-OX
+    attachment (or even that MIDI-OX be running).
     
     Example:    
     str = "Sys MIDI In Devices: " & mox.SysMidiInCount
@@ -220,16 +239,13 @@ class MidiOxProxy:
     
     GetNextSysMidiOutDev
     
-    Returns a VB string containing the name of the next MIDI output device defined to Windows. Returns a blank string ("") when there are no more devices.
+    Returns a VB string containing the name of the next MIDI output device defined to Windows. Returns a blank string
+    ("") when there are no more devices.
     
-    These methods can be used to return all the MIDI output devices installed. They do not require a MIDI-OX attachment (or even that MIDI-OX be running). Example:    
-    str = "Sys MIDI Out Devices: " & mox.SysMidiOutCount
-    strWrk = mox.GetFirstSysMidiOutDev
-    Do while strWrk <> ""
-       str = str & vbCrLf & " " & strWrk
-       strWrk = mox.GetNextSysMidiOutDev
-    Loop
-    MsgBox Str
+    These methods can be used to return all the MIDI output devices installed. They do not require a MIDI-OX
+    attachment (or even that MIDI-OX be running). Example: str = "Sys MIDI Out Devices: " & mox.SysMidiOutCount
+    strWrk = mox.GetFirstSysMidiOutDev Do while strWrk <> "" str = str & vbCrLf & " " & strWrk strWrk =
+    mox.GetNextSysMidiOutDev Loop MsgBox Str
     
     
     OpenMidiInCount
@@ -242,9 +258,11 @@ class MidiOxProxy:
     
     GetNextOpenMidiInDev
     
-    Returns a VB string containing the name of the next MIDI input device opened in the attached MIDI-OX instance. Returns a blank string ("") when there are no more devices.
+    Returns a VB string containing the name of the next MIDI input device opened in the attached MIDI-OX instance.
+    Returns a blank string ("") when there are no more devices.
     
-    These methods can be used to determine which devices are opened by the MIDI-OX instance. They can be compared against the system devices to determine the actual MIDI ID number (it is consecutive).
+    These methods can be used to determine which devices are opened by the MIDI-OX instance. They can be compared
+    against the system devices to determine the actual MIDI ID number (it is consecutive).
     
     Example:    
     str = "Open MIDI In Devices: " & mox.OpenMidiInCount
@@ -266,7 +284,8 @@ class MidiOxProxy:
     
     GetNextOpenMidiOutDev
     
-    Returns a VB string containing the name of the first MIDI output device opened in the attached MIDI-OX instance. Returns a blank string ("") when there are no more devices
+    Returns a VB string containing the name of the first MIDI output device opened in the attached MIDI-OX instance.
+    Returns a blank string ("") when there are no more devices
     
     Example:    
     str = "Open MIDI Out Devices: " & mox.OpenMidiOutCount
@@ -354,7 +373,10 @@ class MidiOxProxy:
     
     SendSysExFile(FilePath)
     
-    This method will send a file containing SysEx out all ports attached by an instance, and which also are mapping the SysEx Port Map object (this is on by default when you open an output port in MIDI-OX). The file is expected to contain encoded binary SysEx data (not ASCII text). If you want to send a file containing SysEx represented as text, open the file and send it via the SendSysExString interface (below).
+    This method will send a file containing SysEx out all ports attached by an instance, and which also are mapping
+    the SysEx Port Map object (this is on by default when you open an output port in MIDI-OX). The file is expected
+    to contain encoded binary SysEx data (not ASCII text). If you want to send a file containing SysEx represented as
+    text, open the file and send it via the SendSysExString interface (below).
     
     Example:    
     mox.SendSysExFile "C:\Program Files\midiox\Syx\Sc55.syx"
