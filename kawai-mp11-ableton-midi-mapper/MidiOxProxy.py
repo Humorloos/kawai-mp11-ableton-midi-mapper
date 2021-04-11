@@ -10,7 +10,7 @@ from consts import KAWAI_SECTION_NAMES
 
 CONTROL_NUMBER_DICT = CcReference.get_assigned_control_numbers()
 SIMPLE_SYS_EX_INFO, PREFIX_SYS_EX_INFO = CcReference.get_cc_sys_ex_info()
-SIMPLE_SYS_EX_MAP: Dict[str, SysExInfo] = {info.sys_ex_strings[0]: info for info in SIMPLE_SYS_EX_INFO}
+MMC_SYS_EX_MAP: Dict[str, SysExInfo] = {info.sys_ex_strings[0]: info for info in SIMPLE_SYS_EX_INFO}
 PREFIX_SYS_EX_MAP: Dict[str, SysExInfo] = {sys_ex: info for info in PREFIX_SYS_EX_INFO
                                            for sys_ex in info.sys_ex_strings}
 REVERSE_PREFIX_SYS_EX_MAP: Dict[int, SysExInfo] = {info.control_number: info for info in PREFIX_SYS_EX_INFO}
@@ -33,7 +33,7 @@ def int_to_hex(value):
 class EventHandler:
 
     def __init__(self):
-        self.sections = [Section(name=name, is_on=False, active_tone=0) for name in KAWAI_SECTION_NAMES]
+        self.sections = [Section(name=name, active_tone=0) for name in KAWAI_SECTION_NAMES]
         self.active_section = self.sections[1]
         self.out_port_names = {'kawai': '2- KAWAI USB MIDI', 'loopMIDI': 'loopMIDI Port'}
         self.in_port_names = {'kawai': '2- KAWAI USB MIDI', 'loopMIDI': 'loopMIDI Port 1'}
@@ -52,19 +52,20 @@ class EventHandler:
     # noinspection PyPep8Naming
     def OnSysExInput(self, bStrSysEx: str):
         clean_sys_ex = bStrSysEx[:-1]
-        if clean_sys_ex in SIMPLE_SYS_EX_MAP.keys():
-            self.output_cc_signal_2_active_track(cc_code=SIMPLE_SYS_EX_MAP[clean_sys_ex].control_number, value=127)
+        if clean_sys_ex in MMC_SYS_EX_MAP.keys():
+            sys_ex_info = MMC_SYS_EX_MAP[clean_sys_ex]
+            self.output_cc_signal_2_active_track(cc_code=sys_ex_info.control_number, value=127)
         else:
             sys_ex_prefix = bStrSysEx[:29]
             if sys_ex_prefix in PREFIX_SYS_EX_MAP.keys():
                 sys_ex_info = PREFIX_SYS_EX_MAP[sys_ex_prefix]
                 section_index = sys_ex_info.map[sys_ex_prefix]
-                if sys_ex_info.name == 'track volume':
-                    self.output_cc_2_track(track=self.sections[section_index],
-                                           cc_code=sys_ex_info.control_number,
-                                           value=int(bStrSysEx[30:32], 16))
-                elif sys_ex_info.name == 'select track':
+                data_size = int(bStrSysEx[27:29], 16)
+                data = int(bStrSysEx[27 + 3 * data_size:29 + 3 * data_size], 16)
+                if sys_ex_info.name == 'tone':
+                    # activate section
                     self.active_section = self.sections[section_index]
+                    # activate tone in section
                     if section_index in range(2):
                         self.active_section.active_tone = int(bStrSysEx[30:32] + bStrSysEx[33:35], 16) - (
                                 section_index * 12)
@@ -73,24 +74,14 @@ class EventHandler:
                         # reserve each 4th tone in sub for return tracks (3, 7, 11, 15 are 12, 13, 14, 15 instead)
                         self.active_section.active_tone = int(raw_channel - raw_channel // 4 + int(
                             not bool((raw_channel + 1) % 4)) * (11 - (2 * ((raw_channel + 1) / 4))))
-                    self.activate_active_track()
-                elif sys_ex_info.name == 'arm track':
-                    indicator_bit = int(bStrSysEx[31])
-                    is_on = bool(indicator_bit)
-                    toggled_program = self.sections[section_index]
-                    toggled_program.is_on = is_on
-                    if is_on:
-                        self.active_section = toggled_program
-                        self.activate_active_track()
-                    self.output_cc_signal_2_active_track(cc_code=sys_ex_info.control_number,
-                                                         value=indicator_bit * sys_ex_info.scale)
-                elif sys_ex_info.name.startswith('efx'):
-                    self.output_cc_2_track(track=self.sections[section_index],
-                                           cc_code=sys_ex_info.control_number,
-                                           value=int(bStrSysEx[30:32], 16) * sys_ex_info.scale)
+                    # instead of tone data, always output 127 on respective channel
+                    data = 1
+                self.output_cc_2_track(track=self.sections[section_index],
+                                       cc_code=sys_ex_info.control_number,
+                                       value=data * sys_ex_info.scale)
 
     def activate_active_track(self):
-        self.output_cc_signal_2_active_track(cc_code=CONTROL_NUMBER_DICT['select track'], value=127)
+        self.output_cc_signal_2_active_track(cc_code=CONTROL_NUMBER_DICT['tone'], value=127)
 
     # noinspection PyPep8Naming,PyMethodMayBeStatic
     def OnTerminateMidiInput(self):
@@ -119,7 +110,7 @@ class EventHandler:
                                 15 - affected_tone)) + int(affected_tone == 15)) + 24
                     # noinspection PyUnresolvedReferences
                     mox.SendSysExString(
-                        f'{REVERSE_PREFIX_SYS_EX_MAP[CONTROL_NUMBER_DICT["select track"]].sys_ex_strings[section_id]}'
+                        f'{REVERSE_PREFIX_SYS_EX_MAP[CONTROL_NUMBER_DICT["tone"]].sys_ex_strings[section_id]}'
                         f' 00 {int_to_hex(tone_id)} F7')
                     # noinspection PyUnresolvedReferences
                     mox.SendSysExString(f'{sys_ex_info.sys_ex_strings[section_id]} {hex_value} F7')
