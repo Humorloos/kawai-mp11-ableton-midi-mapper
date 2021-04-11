@@ -56,7 +56,9 @@ class EventHandler:
         clean_sys_ex = bStrSysEx[:-1]
         if clean_sys_ex in MMC_SYS_EX_MAP.keys():
             sys_ex_info = MMC_SYS_EX_MAP[clean_sys_ex]
-            self.output_cc_signal_2_active_track(cc_code=sys_ex_info.control_number, value=127)
+            self.output_cc_signal_2_active_track(cc_code=sys_ex_info.control_number, value=sys_ex_info.scale * 127)
+            if sys_ex_info.name not in ['play', 'record pause']:
+                sys_ex_info.scale = int(not sys_ex_info.scale)
         else:
             sys_ex_prefix = bStrSysEx[:29]
             if sys_ex_prefix in PREFIX_SYS_EX_MAP.keys():
