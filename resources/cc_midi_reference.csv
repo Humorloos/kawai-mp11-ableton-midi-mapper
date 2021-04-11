@@ -1,10 +1,8 @@
-﻿Control Number;;Control Function;3rd Byte Value;;;;;;;;
-(2nd Byte Value);;;;;;;;;;;
-Decimal;Hex;Column1;Value;Used As;mapping;reverse mapping;SysEx PIANO;SysEx E.PIANO;SysEx SUB;SysEx type;scale
+﻿Decimal;Hex;Column1;Value;Used As;mapping;reverse mapping;SysEx PIANO;SysEx E.PIANO;SysEx SUB;SysEx type;scale
 0;0;Bank Select;0-127;MSB;;;;;;;
 1;1;Modulation Wheel or Lever;0-127;MSB;;;;;;;
 2;2;Breath Controller;0-127;MSB;;;;;;;
-3;3;Undefined;0-127;MSB;section toggle;1;F0 40 00 10 00 12 40 00 5E 01;F0 40 00 10 00 12 40 02 02 01;F0 40 00 10 00 12 40 02 26 01;section;127
+3;3;Undefined;0-127;MSB;tone;1;F0 40 00 10 00 12 40 00 60 02;F0 40 00 10 00 12 40 02 04 02;F0 40 00 10 00 12 40 03 28 02;section;127
 4;4;Foot Controller;0-127;MSB;;;;;;;
 5;5;Portamento Time;0-127;MSB;;;;;;;
 6;6;Data Entry MSB;0-127;MSB;;;;;;;
@@ -15,24 +13,24 @@ Decimal;Hex;Column1;Value;Used As;mapping;reverse mapping;SysEx PIANO;SysEx E.PI
 11;0B;Expression Controller;0-127;MSB;;;;;;;
 12;0C;Effect Control 1;0-127;MSB;;;;;;;
 13;0D;Effect Control 2;0-127;MSB;;;;;;;
-14;0E;Undefined;0-127;MSB;section volume;1;F0 40 00 10 00 12 40 01 70 01;F0 40 00 10 00 12 40 03 14 01;F0 40 00 10 00 12 40 04 38 01;section;1
+14;0E;Undefined;0-127;MSB;record pause;0;F0 7F 00 06 08 F7;;;MMC;1
 15;0F;Undefined;0-127;MSB;record strobe;0;F0 7F 00 06 06 F7;;;MMC;1
 16;10;General Purpose Controller 1;0-127;MSB;;;;;;;
 17;11;General Purpose Controller 2;0-127;MSB;;;;;;;
 18;12;General Purpose Controller 3;0-127;MSB;;;;;;;
 19;13;General Purpose Controller 4;0-127;MSB;;;;;;;
-20;14;Undefined;0-127;MSB;record pause;0;F0 7F 00 06 08 F7;;;MMC;1
-21;15;Undefined;0-127;MSB;efx 1;1;F0 40 00 10 00 12 40 01 10 01;F0 40 00 10 00 12 40 02 34 01;F0 40 00 10 00 12 40 03 58 01;section;1
-22;16;Undefined;0-127;MSB;efx 2;1;F0 40 00 10 00 12 40 01 11 01;F0 40 00 10 00 12 40 02 35 01;F0 40 00 10 00 12 40 03 59 01;section;1
-23;17;Undefined;0-127;MSB;efx 3;1;F0 40 00 10 00 12 40 01 12 01;F0 40 00 10 00 12 40 02 36 01;F0 40 00 10 00 12 40 03 5A 01;section;1
-24;18;Undefined;0-127;MSB;efx 4;1;F0 40 00 10 00 12 40 01 13 01;F0 40 00 10 00 12 40 02 37 01;F0 40 00 10 00 12 40 03 5B 01;section;1
-25;19;Undefined;0-127;MSB;efx 5;1;F0 40 00 10 00 12 40 01 14 01;F0 40 00 10 00 12 40 02 38 01;F0 40 00 10 00 12 40 03 5C 01;section;1
-26;1A;Undefined;0-127;MSB;efx 6;1;F0 40 00 10 00 12 40 01 15 01;F0 40 00 10 00 12 40 02 39 01;F0 40 00 10 00 12 40 03 5D 01;section;127
-27;1B;Undefined;0-127;MSB;efx 7;1;F0 40 00 10 00 12 40 01 16 01;F0 40 00 10 00 12 40 02 3A 01;F0 40 00 10 00 12 40 03 5E 01;section;1
-28;1C;Undefined;0-127;MSB;efx 8;1;F0 40 00 10 00 12 40 01 17 01;F0 40 00 10 00 12 40 02 3B 01;F0 40 00 10 00 12 40 03 5F 01;section;1
-29;1D;Undefined;0-127;MSB;efx 9;1;F0 40 00 10 00 12 40 01 18 01;F0 40 00 10 00 12 40 02 3C 01;F0 40 00 10 00 12 40 03 60 01;section;1
-30;1E;Undefined;0-127;MSB;efx 10;1;F0 40 00 10 00 12 40 01 19 01;F0 40 00 10 00 12 40 02 3D 01;F0 40 00 10 00 12 40 03 61 01;section;1
-31;1F;Undefined;0-127;MSB;pause;0;F0 7F 00 06 09 F7;;;MMC;1
+20;14;Undefined;0-127;MSB;pause;0;F0 7F 00 06 09 F7;;;MMC;1
+21;15;Undefined;0-127;MSB;rewind;0;F0 7F 00 06 05 F7;;;MMC;1
+22;16;Undefined;0-127;MSB;fast forward;0;F0 7F 00 06 04 F7;;;MMC;1
+23;17;Undefined;0-127;MSB;section volume;1;F0 40 00 10 00 12 40 01 70 01;F0 40 00 10 00 12 40 03 14 01;F0 40 00 10 00 12 40 04 38 01;section;1
+24;18;Undefined;0-127;MSB;section toggle;1;F0 40 00 10 00 12 40 00 5E 01;F0 40 00 10 00 12 40 02 02 01;F0 40 00 10 00 12 40 03 26 01;section;127
+25;19;Undefined;0-127;MSB;efx;1;F0 40 00 10 00 12 40 01 0D 01;F0 40 00 10 00 12 40 02 31 01;F0 40 00 10 00 12 40 03 55 01;section;127
+26;1A;Undefined;0-127;MSB;efx2;1;F0 40 00 10 00 12 40 02 3E 01;F0 40 00 10 00 12 40 02 3E 01;F0 40 00 10 00 12 40 02 3E 01;section;127
+27;1B;Undefined;0-127;MSB;amp;1;F0 40 00 10 00 12 40 02 3E 01;F0 40 00 10 00 12 40 02 16 01;F0 40 00 10 00 12 40 02 3E 01;section;127
+28;1C;Undefined;0-127;MSB;reverb;1;F0 40 00 10 00 12 40 01 27 01;F0 40 00 10 00 12 40 02 4B 01;F0 40 00 10 00 12 40 03 6F 01;section;127
+29;1D;Undefined;0-127;MSB;efx 1;1;F0 40 00 10 00 12 40 01 10 01;F0 40 00 10 00 12 40 02 34 01;F0 40 00 10 00 12 40 03 58 01;section;1
+30;1E;Undefined;0-127;MSB;efx 2;1;F0 40 00 10 00 12 40 01 11 01;F0 40 00 10 00 12 40 02 35 01;F0 40 00 10 00 12 40 03 59 01;section;1
+31;1F;Undefined;0-127;MSB;efx 3;1;F0 40 00 10 00 12 40 01 12 01;F0 40 00 10 00 12 40 02 36 01;F0 40 00 10 00 12 40 03 5A 01;section;1
 32;20;LSB for Control 0 (Bank Select);0-127;LSB;;;;;;;
 33;21;LSB for Control 1 (Modulation Wheel or Lever);0-127;LSB;;;;;;;
 34;22;LSB for Control 2 (Breath Controller);0-127;LSB;;;;;;;
@@ -86,12 +84,12 @@ Decimal;Hex;Column1;Value;Used As;mapping;reverse mapping;SysEx PIANO;SysEx E.PI
 82;52;General Purpose Controller 7;0-127;LSB;;;;;;;
 83;53;General Purpose Controller 8;0-127;LSB;;;;;;;
 84;54;Portamento Control;0-127;LSB;;;;;;;
-85;55;Undefined;---;---;rewind;0;F0 7F 00 06 05 F7;;;MMC;1
-86;56;Undefined;---;---;fast forward;0;F0 7F 00 06 04 F7;;;MMC;1
-87;57;Undefined;---;---;amp;1;;F0 40 00 10 00 12 40 02 16 01;;section;127
+85;55;Undefined;---;---;efx 4;1;F0 40 00 10 00 12 40 01 13 01;F0 40 00 10 00 12 40 02 37 01;F0 40 00 10 00 12 40 03 5B 01;section;1
+86;56;Undefined;---;---;efx 5;1;F0 40 00 10 00 12 40 01 14 01;F0 40 00 10 00 12 40 02 38 01;F0 40 00 10 00 12 40 03 5C 01;section;1
+87;57;Undefined;---;---;efx 6;1;F0 40 00 10 00 12 40 01 15 01;F0 40 00 10 00 12 40 02 39 01;F0 40 00 10 00 12 40 03 5D 01;section;127
 88;58;High Resolution Velocity Prefix;0-127;LSB;;;;;;;
-89;59;Undefined;---;---;efx;1;F0 40 00 10 00 12 40 01 0D 01;F0 40 00 10 00 12 40 02 31 01;F0 40 00 10 00 12 40 03 55 01;section;127
-90;5A;Undefined;---;---;;;;;;;
+89;59;Undefined;---;---;efx 7;1;F0 40 00 10 00 12 40 01 16 01;F0 40 00 10 00 12 40 02 3A 01;F0 40 00 10 00 12 40 03 5E 01;section;1
+90;5A;Undefined;---;---;efx 8;1;F0 40 00 10 00 12 40 01 17 01;F0 40 00 10 00 12 40 02 3B 01;F0 40 00 10 00 12 40 03 5F 01;section;1
 91;5B;Effects 1 Depth;0-127;---;;;;;;;
 ;;(default: Reverb Send Level - see MMA RP-023);;;;;;;;;
 ;;(formerly External Effects Depth);;;;;;;;;
@@ -107,15 +105,15 @@ Decimal;Hex;Column1;Value;Used As;mapping;reverse mapping;SysEx PIANO;SysEx E.PI
 99;63;Non-Registered Parameter Number (NRPN) - MSB;0-127;MSB;;;;;;;
 100;64;Registered Parameter Number (RPN) - LSB*;0-127;LSB;;;;;;;
 101;65;Registered Parameter Number (RPN) - MSB*;0-127;MSB;;;;;;;
-102;66;Undefined;---;---;;;;;;;
-103;67;Undefined;---;---;;;;;;;
+102;66;Undefined;---;---;efx 9;1;F0 40 00 10 00 12 40 01 18 01;F0 40 00 10 00 12 40 02 3C 01;F0 40 00 10 00 12 40 03 60 01;section;1
+103;67;Undefined;---;---;efx 10;1;F0 40 00 10 00 12 40 01 19 01;F0 40 00 10 00 12 40 02 3D 01;F0 40 00 10 00 12 40 03 61 01;section;1
 104;68;Undefined;---;---;;;;;;;
 105;69;Undefined;---;---;;;;;;;
 106;6A;Undefined;---;---;;;;;;;
 107;6B;Undefined;---;---;;;;;;;
 108;6C;Undefined;---;---;;;;;;;
 109;6D;Undefined;---;---;;;;;;;
-110;6E;Undefined;---;---;tone;1;F0 40 00 10 00 12 40 00 60 02;F0 40 00 10 00 12 40 02 04 02;F0 40 00 10 00 12 40 03 28 02;section;127
+110;6E;Undefined;---;---;;;;;;;
 111;6F;Undefined;---;---;;;;;;;
 112;70;Undefined;---;---;;;;;;;
 113;71;Undefined;---;---;;;;;;;

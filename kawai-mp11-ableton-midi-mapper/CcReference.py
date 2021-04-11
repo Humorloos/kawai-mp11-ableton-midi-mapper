@@ -1,12 +1,12 @@
 import os
-from typing import List, Dict
+from typing import Dict
 
 import pandas as pd
 
 from SysExInfo import SysExInfo
 from consts import KAWAI_SECTION_NAMES
 
-data = pd.read_csv(os.path.join(os.path.dirname(__file__), r'..\resources\cc_midi_reference.csv'), sep=';', skiprows=2)
+data = pd.read_csv(os.path.join(os.path.dirname(__file__), r'..\resources\cc_midi_reference.csv'), sep=';')
 data[['scale', 'Decimal']] = data[['scale', 'Decimal']].fillna(-1).astype('int32')
 
 
